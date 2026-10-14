@@ -1,4 +1,4 @@
-﻿name: AWS OIDC Authentication Test
+﻿name: AWS OIDC Authorization Test
 
 on:
   push:
@@ -17,7 +17,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::975050251876:role/github-actions-deploy-dev
@@ -25,5 +25,24 @@ jobs:
           role-session-name: github-${{ github.run_id }}
 
       - name: Verify AWS identity
+        run: aws sts get-caller-identity
+
+      - name: Test allowed S3 operation
         run: |
-          aws sts get-caller-identity
+          aws s3api list-objects-v2 \
+            --bucket aws-oidc-lab-975050251876
+
+      - name: Test denied S3 upload
+        shell: bash
+        run: |
+          echo "Testing unauthorized upload..."
+
+          if aws s3api put-object \
+            --bucket aws-oidc-lab-975050251876 \
+            --key unauthorized-test.txt \
+            --body README.md; then
+            echo "SECURITY TEST FAILED: Upload unexpectedly succeeded."
+            exit 1
+          else
+            echo "SECURITY TEST PASSED: Upload was denied."
+          fi
