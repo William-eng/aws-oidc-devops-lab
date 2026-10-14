@@ -1,0 +1,29 @@
+﻿name: AWS OIDC Authentication Test
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  verify-aws:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::975050251876:role/github-actions-deploy-dev
+          aws-region: us-east-1
+          role-session-name: github-${{ github.run_id }}
+
+      - name: Verify AWS identity
+        run: |
+          aws sts get-caller-identity
