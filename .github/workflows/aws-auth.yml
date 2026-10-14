@@ -35,14 +35,19 @@ jobs:
       - name: Test denied S3 upload
         shell: bash
         run: |
-          echo "Testing unauthorized upload..."
-
-          if aws s3api put-object \
+          set +e
+          output=$(aws s3api put-object \
             --bucket aws-oidc-lab-975050251876 \
             --key unauthorized-test.txt \
-            --body README.md; then
-            echo "SECURITY TEST FAILED: Upload unexpectedly succeeded."
-            exit 1
+            --body README.md 2>&1)
+          status=$?
+          set -e
+
+          if [ "$status" -ne 0 ] && \
+             echo "$output" | grep -q "AccessDenied"; then
+            echo "SECURITY TEST PASSED: AWS explicitly denied PutObject."
           else
-            echo "SECURITY TEST PASSED: Upload was denied."
+            echo "$output"
+            echo "SECURITY TEST FAILED: Unexpected upload result."
+            exit 1
           fi
